@@ -64,18 +64,41 @@ subroutine linear_transfor(input)
     !
     ! Linearly transform the output from the S-Boxes.
     !
-    integer(kind=i8), dimension(4), intent(inout)   :: input
+    integer(kind=i8), dimension(0:3), intent(inout)   :: input
 
-    input(1) = ishftc(input(1), 13, 32)
-    input(3) = ishftc(input(2), 3, 32)
-    input(2) = ieor(ieor(input(2), input(1)), input(3))
-    input(4) = ieor(ieor(input(4), input(3)), ishft(input(1), 3))
-    input(2) = ishftc(input(2), 1, 32)
-    input(4) = ishftc(input(4), 7, 32)
-    input(1) = ieor(ieor(input(1), input(2)), input(4))
-    input(3) = ieor(ieor(input(3), input(4)), ishft(input(2), 7))
-    input(1) = ishftc(input(1), 5, 32)
-    input(3) = ishftc(input(3), 22, 32)
+    input(0) = ishftc(input(0), 13, 32)
+    input(2) = ishftc(input(2), 3, 32)
+    input(1) = ieor(ieor(input(1), input(0)), input(2))
+    input(3) = ieor(ieor(input(3), input(2)), ishft(input(0), 3))
+    input(1) = ishftc(input(1), 1, 32)
+    input(3) = ishftc(input(3), 7, 32)
+    input(0) = ieor(ieor(input(0), input(1)), input(3))
+    input(2) = ieor(ieor(input(2), input(3)), ishft(input(1), 7))
+    input(0) = ishftc(input(0), 5, 32)
+    input(2) = ishftc(input(2), 22, 32)
+
+end subroutine
+
+subroutine expand_key(user_key, round_key)
+    integer(kind=i8), dimension(0:7), intent(in)    :: user_key     ! 256 bit user key.
+    integer(kind=i8), dimension(0:131), intent(out) :: round_key    ! Round keys.
+
+    integer(kind=i8), dimension(-8:131)             :: inter_key    ! Intermediate key.
+    integer(kind=i8)                                :: i
+
+    inter_key(-8:-1) = user_key(0:7)
+
+    do i = 0, 131
+        inter_key(i) = ieor(inter_key(i-8), inter_key(i-5))
+        inter_key(i) = ieor(inter_key(i), inter_key(i-3))
+        inter_key(i) = ieor(inter_key(i), inter_key(i-1))
+        inter_key(i) = ieor(inter_key(i), z'9E3779B9') 
+        inter_key(i) = ieor(inter_key(i), i)
+    end do
+
+    do i = 0, 128, 4
+        call sbox(n, inter_key(i:i+3), round_key(i:i+3))
+    end do
 
 end subroutine
 
